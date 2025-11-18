@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Galeria 3D — Portfólio</title>
+  <meta name="description" content="Galeria de projetos com efeito 3D ao passar o mouse — HTML5, CSS e JS puros." />
+
+  <style>
+    :root{
+      --bg: #07070a;
+      --card: linear-gradient(180deg,#0f1114,#0b0c0e);
+      --muted: #9aa3b2;
+      --accent: #7c3aed;
+      --radius: 14px;
+      --gap: 20px;
+      --text: #e6eef8;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.06), transparent 8%),
+                  linear-gradient(180deg,#030305 0%, var(--bg) 100%);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px;
+      line-height:1.45;
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      max-width:1200px;
+      margin:0 auto 18px;
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:48px;height:48px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#ec4899);
+      display:flex;align-items:center;justify-content:center;font-weight:800;color:white;
+      box-shadow:0 8px 30px rgba(124,58,237,0.14)
+    }
+    h1{font-size:20px;margin:0}
+    p.lead{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;gap:8px;align-items:center}
+    .btn{
+      appearance:none;border:0;padding:8px 12px;border-radius:10px;font-weight:700;
+      background:linear-gradient(90deg,var(--accent),#ec4899);color:white;cursor:pointer;
+      box-shadow:0 8px 20px rgba(124,58,237,0.14);
+    }
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted);box-shadow:none}
+
+    /* gallery layout */
+    .gallery{
+      max-width:1200px;
+      margin:18px auto;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap:var(--gap);
+      padding-bottom: 40px;
+    }
+
+    /* card wrapper */
+    .card-wrap{
+      perspective: 1100px; /* importante para 3D */
+      -webkit-perspective: 1100px;
+    }
+
+    .card{
+      background: var(--card);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 320px;
+      display:flex;
+      flex-direction:column;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform 400ms cubic-bezier(.2,.9,.25,1), box-shadow 300ms;
+      border: 1px solid rgba(255,255,255,0.03);
+      position:relative;
+      cursor: pointer;
+    }
+
+    .card:focus { outline: 3px solid rgba(124,58,237,0.18); outline-offset: 4px; }
+
+    .card-media{
+      height:160px;
+      overflow:hidden;
+      background:#0a0a0c;
+      flex-shrink:0;
+    }
+    .card-media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transform-origin:center center;
+      transition: transform 600ms cubic-bezier(.2,.9,.25,1);
+    }
+
+    .card-body{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      transform: translateZ(40px); /* come forward in 3D */
+    }
+
+    .title{font-size:16px;font-weight:800}
+    .desc{color:var(--muted);font-size:13px;margin-top:4px;flex:1}
+    .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+    .tags{display:flex;gap:8px;flex-wrap:wrap}
+    .tag{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;font-size:12px;color:var(--muted)}
+
+    /* hover glow */
+    .card:hover{
+      box-shadow: 0 20px 50px rgba(124,58,237,0.12);
+    }
+
+    /* projector shine */
+    .shine{
+      pointer-events:none;
+      position:absolute;left:0;top:0;width:100%;height:100%;border-radius:inherit;
+      background:radial-gradient(600px 200px at var(--sx,50%) var(--sy,30%), rgba(255,255,255,0.06), transparent 10%);
+      mix-blend-mode: screen; opacity:0; transition:opacity 220ms;
+      transform: translateZ(50px);
+    }
+    .card.hovering .shine{ opacity:1 }
+
+    /* reveal animation */
+    .card-wrap{opacity:0; transform: translateY(24px); transition: all 520ms cubic-bezier(.2,.9,.25,1) }
+    .card-wrap.show{opacity:1; transform: translateY(0) }
+
+    /* modal */
+    .modal{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(2,6,23,0.6);backdrop-filter: blur(6px);padding:20px;z-index:60;opacity:0;pointer-events:none;
+      transition: opacity 240ms;
+    }
+    .modal.open{opacity:1; pointer-events:auto}
+    .modal-card{
+      width:100%;max-width:880px;border-radius:12px;overflow:hidden;background:linear-gradient(180deg,#0f1114,#09090b);
+      border:1px solid rgba(255,255,255,0.04);box-shadow:0 30px 80px rgba(2,6,23,0.7);
+    }
+    .modal-body{display:grid;grid-template-columns:1fr 320px;gap:12px}
+    .modal-body img{width:100%;height:100%;object-fit:cover}
+    .modal-content{padding:18px}
+    .close-btn{position:absolute;right:12px;top:12px;background:rgba(0,0,0,0.5);border-radius:8px;padding:6px 8px;border:0;color:var(--muted);cursor:pointer}
+
+    /* small screens */
+    @media (max-width:720px){
+      .card{min-height:260px}
+      .modal-body{grid-template-columns:1fr}
+      .modal{padding:12px}
+    }
+
+    /* prefers reduced motion: remove tilt and transitions */
+    @media (prefers-reduced-motion: reduce){
+      .card, .card-media img, .card-wrap{transition:none}
+      .card{transform:none !important}
+      .shine{display:none}
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">JC</div>
+      <div>
+        <h1>Galeria 3D de Projetos</h1>
+        <p class="lead">Passe o mouse sobre os cards para ver o efeito 3D. Clique para abrir detalhes.</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button class="btn" id="shuffle">Embaralhar</button>
+      <button class="btn ghost" id="reset">Restaurar</button>
+    </div>
+  </header>
+
+  <main class="gallery" id="gallery" aria-live="polite">
+    <!-- cards gerados por JS -->
+  </main>
+
+  <!-- Modal de detalhe -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card" role="document">
+      <button class="close-btn" id="modal-close" aria-label="Fechar">✕</button>
+      <div class="modal-body">
+        <div style="min-height:240px;overflow:hidden;"><img id="modal-img" alt=""></div>
+        <div class="modal-content">
+          <h2 id="modal-title" style="margin-top:0"></h2>
+          <p id="modal-desc" style="color:var(--muted)"></p>
+          <div style="margin-top:12px" id="modal-tags"></div>
+          <div style="margin-top:18px;color:var(--muted);font-size:13px">↳ Pressione ESC para fechar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ======= Dados de exemplo - troque pelas suas imagens e textos ======= */
+    const PROJECTS = [
+      { id:1, title:'Jogo da Cobrinha', desc:'Snake clássico em JS com níveis e ranking.', img:'https://picsum.photos/800/520?random=101', tags:['JavaScript','Game'] },
+      { id:2, title:'App de Filmes', desc:'Recomendações com IA e thumbnails dinâmicas.', img:'https://picsum.photos/800/520?random=102', tags:['React','AI'] },
+      { id:3, title:'Site Institucional', desc:'Landing page para empresa com animações.', img:'https://picsum.photos/800/520?random=103', tags:['HTML','CSS'] },
+      { id:4, title:'Sistema de Tickets', desc:'Gerenciamento de chamados e painel admin.', img:'https://picsum.photos/800/520?random=104', tags:['Fullstack'] },
+      { id:5, title:'Portfolio Animado', desc:'Design escuro com Framer-like effects.', img:'https://picsum.photos/800/520?random=105', tags:['UI/UX','Design'] },
+      { id:6, title:'App Mobile', desc:'Protótipo de app para Android/iOS.', img:'https://picsum.photos/800/520?random=106', tags:['Mobile'] }
+    ];
+
+    const gallery = document.getElementById('gallery');
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function makeCard(p){
+      const wrap = document.createElement('div');
+      wrap.className = 'card-wrap';
+      wrap.innerHTML = `
+        <article class="card" tabindex="0" role="button" aria-pressed="false" data-id="${p.id}">
+          <div class="card-media"><img loading="lazy" alt="${escapeHtml(p.title)}" src="${p.img}"></div>
+          <div class="card-body">
+            <div class="title">${escapeHtml(p.title)}</div>
+            <div class="desc">${escapeHtml(p.desc)}</div>
+            <div class="meta">
+              <div class="tags">${(p.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+            </div>
+          </div>
+          <div class="shine" aria-hidden="true"></div>
+        </article>
+      `;
+      return wrap;
+    }
+
+    function render(list){
+      gallery.innerHTML = '';
+      list.forEach(p => {
+        const c = makeCard(p);
+        gallery.appendChild(c);
+      });
+      attachObservers();
+      attachInteractions();
+    }
+
+    // reveal on scroll
+    function attachObservers(){
+      const items = document.querySelectorAll('.card-wrap');
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if(e.isIntersecting) e.target.classList.add('show');
+        });
+      }, {threshold:0.12});
+      items.forEach(i => io.observe(i));
+    }
+
+    // tilt effect
+    function attachInteractions(){
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        const wrap = card.parentElement;
+        const mediaImg = card.querySelector('.card-media img');
+        const shine = card.querySelector('.shine');
+
+        // pointer move (mouse)
+        function onMove(e){
+          if(prefersReducedMotion) return;
+          const rect = card.getBoundingClientRect();
+          const cx = rect.left + rect.width/2;
+          const cy = rect.top + rect.height/2;
+          // support both mouse and touch
+          const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+          const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+          const dx = clientX - cx;
+          const dy = clientY - cy;
+          const rx = (dy / rect.height) * -12; // rotateX
+          const ry = (dx / rect.width) * 14;   // rotateY
+          card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(8px)`;
+          card.classList.add('hovering');
+          // scale image slightly
+          mediaImg.style.transform = `scale(1.06) translateZ(30px)`;
+          // shine position
+          const sx = ((clientX - rect.left) / rect.width) * 100;
+          const sy = ((clientY - rect.top) / rect.height) * 100;
+          shine.style.setProperty('--sx', sx + '%');
+          shine.style.setProperty('--sy', sy + '%');
+        }
+        function onLeave(){
+          card.style.transform = '';
+          card.classList.remove('hovering');
+          mediaImg.style.transform = '';
+          shine.style.setProperty('--sx','50%');
+          shine.style.setProperty('--sy','30%');
+        }
+
+        // mouse events
+        card.addEventListener('mousemove', onMove);
+        card.addEventListener('mouseleave', onLeave);
+        card.addEventListener('blur', onLeave);
+
+        // touch support (no tilt, but a subtle scale on touchstart)
+        card.addEventListener('touchstart', function(e){
+          if(prefersReducedMotion) return;
+          card.style.transition = 'transform 180ms';
+          card.style.transform = 'scale(1.02) translateZ(6px)';
+          setTimeout(()=> card.style.transition = '', 220);
+        }, {passive:true});
+        card.addEventListener('touchend', onLeave);
+
+        // keyboard: Enter or Space opens modal
+        card.addEventListener('keydown', (ev) => {
+          if(ev.key === 'Enter' || ev.key === ' '){
+            ev.preventDefault();
+            openModalById(card.dataset.id);
+          }
+        });
+
+        // click opens modal
+        card.addEventListener('click', ()=> openModalById(card.dataset.id));
+      });
+    }
+
+    // modal logic
+    const modal = document.getElementById('modal');
+    const modalImg = document.getElementById('modal-img');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+    const modalTags = document.getElementById('modal-tags');
+    const modalClose = document.getElementById('modal-close');
+
+    function openModalById(id){
+      const p = PROJECTS.find(x => String(x.id) === String(id));
+      if(!p) return;
+      modalImg.src = p.img;
+      modalImg.alt = p.title;
+      modalTitle.textContent = p.title;
+      modalDesc.textContent = p.desc;
+      modalTags.innerHTML = (p.tags||[]).map(t => `<span class="tag" style="margin-right:6px">${escapeHtml(t)}</span>`).join('');
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+      // trap focus
+      modalClose.focus();
+    }
+
+    function closeModal(){
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+    window.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
+
+    // helpers
+    function escapeHtml(s){
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // controls
+    document.getElementById('shuffle').addEventListener('click', ()=>{
+      const shuffled = PROJECTS.slice().sort(()=> Math.random() - 0.5);
+      render(shuffled);
+    });
+    document.getElementById('reset').addEventListener('click', ()=> render(PROJECTS));
+
+    // initial render
+    render(PROJECTS);
+
+    // small accessibility improvement: announce number of projects
+    const live = document.createElement('div');
+    live.setAttribute('aria-live','polite');
+    live.style.position='absolute'; live.style.left='-9999px';
+    live.textContent = `${PROJECTS.length} projetos carregados.`;
+    document.body.appendChild(live);
+
+  </script>
+</body>
+</html>
